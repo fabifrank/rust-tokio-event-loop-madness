@@ -16,3 +16,6 @@ In other terminal window:
 ```
 curl -X POST -H 'Content-Type: application/json' -d '{"test":1}' http://localhost:8080/push
 ```
+
+# Solution
+Use `tokio::spawn` to run the future in the existing executor, see: [https://github.com/fabifrank/rust-tokio-event-loop-madness/blob/master/src/main.rs#L55](https://github.com/fabifrank/rust-tokio-event-loop-madness/blob/master/src/main.rs#L55).
