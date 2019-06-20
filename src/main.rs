@@ -2,12 +2,14 @@ extern crate actix_web;
 extern crate serde_json;
 extern crate actix_rt;
 extern crate hyper;
+extern crate tokio;
 
 use serde_json::{Value, json};
-use hyper::{Client, Uri, Body, Request};
+use hyper::{Client, Body, Request};
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use actix_rt::System;
-use actix_web::client;
+use tokio::spawn;
+// use actix_web::client;
 use futures::future::{Future, lazy};
 
 fn main() {
@@ -46,14 +48,15 @@ fn test(item: web::Json<Value>) -> HttpResponse {
 
 
 
-pub fn send(mut data: serde_json::Value) {
+pub fn send(data: serde_json::Value) {
     println!("# Start running log post future...");
 
     // if the following line is removed, the call is not received by the test function above
-    System::new("test").block_on(lazy(|| {
+    spawn(lazy(move || {
         let req = Request::builder()
             .method("POST")
             .uri("http://localhost:8080/test")
+            .header("Content-Type", "application/json")
             .body(Body::from(data.to_string()))
             .expect("request builder");
 
