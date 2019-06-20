@@ -1,0 +1,13 @@
+[package]
+name = "rust-tokio-event-loop-madness"
+version = "0.1.0"
+authors = [""]
+edition = "2018"
+
+[dependencies]
+serde_json = "1.0.39"
+actix-web = "1.0.0"
+serde_derive = "1.0.92"
+actix-rt = "*"
+hyper = "0.12.30"
+futures = "*"
