@@ -32,10 +32,11 @@ pub fn listen() -> std::io::Result<()> {
 
 fn index(item: web::Json<Value>) -> HttpResponse {
     println!("model: {:?}", &item);
+    println!("before send");
     send(json!({
         "hello": "world"
     }));
-
+    println!("after send");
     HttpResponse::Ok().json(item.0) // <- send response
 }
 
@@ -52,16 +53,15 @@ pub fn send(data: serde_json::Value) {
     println!("# Start running log post future...");
 
     // if the following line is removed, the call is not received by the test function above
-    spawn(lazy(move || {
-        let req = Request::builder()
-            .method("POST")
-            .uri("http://localhost:8080/test")
-            .header("Content-Type", "application/json")
-            .body(Body::from(data.to_string()))
-            .expect("request builder");
+    let req = Request::builder()
+        .method("POST")
+        .uri("http://localhost:8080/test")
+        .header("Content-Type", "application/json")
+        .body(Body::from(data.to_string()))
+        .expect("request builder");
 
-        let client = Client::new();
-        let future = client.request(req)
+    let client = Client::new();
+    let future = client.request(req)
         .and_then(|res| {
             println!("status: {}", res.status());
             Ok(())
@@ -69,8 +69,10 @@ pub fn send(data: serde_json::Value) {
         .map_err(|err| {
             println!("error: {}", err);
         });
-        return future;
-    }));
+    spawn(lazy(move || future));
 
-    println!("# Finish running log post future")
+
+    // return future;
+
+    // println!("# Finish running log post future")
 }
