@@ -3,12 +3,13 @@ extern crate serde_json;
 extern crate actix_rt;
 extern crate hyper;
 extern crate tokio;
+use std::io;
 
 use serde_json::{Value, json};
-use hyper::{Client, Body, Request};
+use hyper::{Client, Body, Request, Response, Error};
 use actix_web::{middleware, web, App, HttpResponse, HttpServer};
 use actix_rt::System;
-use tokio::spawn;
+use tokio::{spawn};
 // use actix_web::client;
 use futures::future::{Future, lazy};
 
@@ -33,11 +34,12 @@ pub fn listen() -> std::io::Result<()> {
 fn index(item: web::Json<Value>) -> HttpResponse {
     println!("model: {:?}", &item);
     println!("before send");
-    send(json!({
+    chain!(send(json!({
         "hello": "world"
-    }));
-    println!("after send");
-    HttpResponse::Ok().json(item.0) // <- send response
+    })), || {
+        println!("after send");
+    });
+    HttpResponse::Ok().json(item.0)
 }
 
 fn test(item: web::Json<Value>) -> HttpResponse {
@@ -47,12 +49,30 @@ fn test(item: web::Json<Value>) -> HttpResponse {
     HttpResponse::Ok().json(item.0) // <- send response
 }
 
+// fn my_fut() -> Result<i32, i32> {
+//     println!("Run future #2");
+//     Ok(1)
+// }
 
+#[macro_export]
+macro_rules! chain {
+    ( $x:expr, $y:expr ) => ({
+        let f = $x;
+        let all = f.and_then(|res| {
+                println!("status: {}", res.status());
+                $y;
+                Ok(())
+            })
+            .map_err(|err| {
+                println!("error: {}", err);
+            });
+        spawn(lazy(move || all));
+    });
+}
 
-pub fn send(data: serde_json::Value) {
+pub fn send(data: serde_json::Value) -> impl Future<Item=Response<Body>, Error=Error>{
     println!("# Start running log post future...");
 
-    // if the following line is removed, the call is not received by the test function above
     let req = Request::builder()
         .method("POST")
         .uri("http://localhost:8080/test")
@@ -60,19 +80,27 @@ pub fn send(data: serde_json::Value) {
         .body(Body::from(data.to_string()))
         .expect("request builder");
 
+
     let client = Client::new();
-    let future = client.request(req)
-        .and_then(|res| {
-            println!("status: {}", res.status());
-            Ok(())
-        })
-        .map_err(|err| {
-            println!("error: {}", err);
-        });
-    spawn(lazy(move || future));
+    let future = client.request(req);
+    return future;
+    // let all = future.and_then(|res| {
+    //         println!("status: {}", res.status());
+    //         Ok(())
+    //     })
+    //     .map_err(|err| {
+    //         println!("error: {}", err);
+    //     });
 
 
+    // spawn(lazy(move || all));
+
+    // future.and_then(|res| {
+    //     println!("after all");
+    //     Ok(());
+    // })
+
+    // return future
     // return future;
-
     // println!("# Finish running log post future")
 }
