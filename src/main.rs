@@ -60,7 +60,8 @@ macro_rules! chain {
         let f = $x;
         let all = f.and_then(|res| {
                 println!("status: {}", res.status());
-                $y;
+                $y();
+                println!("test");
                 Ok(())
             })
             .map_err(|err| {
